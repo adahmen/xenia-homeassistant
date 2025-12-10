@@ -1,0 +1,12 @@
+{
+  "domain": "xenia",
+  "name": "Xenia Espresso",
+  "version": "0.0.1",
+  "documentation": "https://github.com/adahmen/xenia-homeassistant",
+  "issue_tracker": "https://github.com/adahmen/xenia-homeassistant/issues",
+  "codeowners": ["@adahmen"],
+  "config_flow": true,
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "requirements": []
+}
