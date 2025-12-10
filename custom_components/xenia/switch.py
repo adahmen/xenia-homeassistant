@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN, API_MACHINE_CONTROL
 from .coordinator import XeniaOverviewCoordinator
@@ -21,6 +22,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up Xenia switch from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     overview: XeniaOverviewCoordinator = data["overview"]
     session: ClientSession = data["session"]
@@ -30,14 +32,26 @@ async def async_setup_entry(
 
 
 class XeniaPowerSwitch(CoordinatorEntity, SwitchEntity):
+    """Power switch for the Xenia machine."""
+
     _attr_has_entity_name = True
     _attr_name = "Xenia Power"
-    _attr_unique_id = "xenia_power"
 
     def __init__(self, coordinator: XeniaOverviewCoordinator, session: ClientSession, ip: str) -> None:
         super().__init__(coordinator)
         self._session = session
         self._ip = ip
+        self._attr_unique_id = f"xenia_power_{ip.replace('.', '_')}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info for Xenia Espresso machine."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._ip)},
+            name="Xenia Espresso",
+            manufacturer="Xenia",
+            model="Xenia DBL",
+        )
 
     @property
     def is_on(self) -> bool:
@@ -57,6 +71,7 @@ class XeniaPowerSwitch(CoordinatorEntity, SwitchEntity):
                     _LOGGER.error("Failed to control Xenia: HTTP %s", resp.status)
         except Exception as err:
             _LOGGER.error("Error controlling Xenia: %s", err)
+
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs) -> None:

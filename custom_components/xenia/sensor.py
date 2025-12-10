@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
 
@@ -22,42 +23,59 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up Xenia sensors from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     overview = data["overview"]
     single = data["single"]
+    ip = data["ip"]
 
     entities: list[SensorEntity] = [
-        XeniaStatusSensor(overview),
-        XeniaTempSensor(overview, "brew_group_temp", "BG_SENS_TEMP_A"),
-        XeniaTempSensor(overview, "brew_boiler_temp", "BB_SENS_TEMP_A"),
-        XeniaPressureSensor(overview, "pump_pressure", "PU_SENS_PRESS"),
-        XeniaPressureSensor(overview, "steam_boiler_pressure", "SB_SENS_PRESS"),
-        XeniaCurrentPowerSensor(overview),
-        XeniaEnergySensor(overview),
-        XeniaExtractionsSensor(overview),
-        XeniaOperatingHoursSensor(overview),
-        XeniaSetTempSensor(single),
+        XeniaStatusSensor(overview, ip),
+        XeniaTempSensor(overview, "brew_group_temp", "BG_SENS_TEMP_A", ip),
+        XeniaTempSensor(overview, "brew_boiler_temp", "BB_SENS_TEMP_A", ip),
+        XeniaPressureSensor(overview, "pump_pressure", "PU_SENS_PRESS", ip),
+        XeniaPressureSensor(overview, "steam_boiler_pressure", "SB_SENS_PRESS", ip),
+        XeniaCurrentPowerSensor(overview, ip),
+        XeniaEnergySensor(overview, ip),
+        XeniaExtractionsSensor(overview, ip),
+        XeniaOperatingHoursSensor(overview, ip),
+        XeniaSetTempSensor(single, ip),
     ]
 
     async_add_entities(entities)
 
 
 class XeniaBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Xenia sensors."""
+
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, name_suffix: str, friendly: str | None = None) -> None:
+    def __init__(self, coordinator, name_suffix: str, ip: str, friendly: str | None = None) -> None:
         super().__init__(coordinator)
         self._name_suffix = name_suffix
-        self._attr_unique_id = f"xenia_{name_suffix}"
+        self._ip = ip
+        self._attr_unique_id = f"xenia_{name_suffix}_{ip.replace('.', '_')}"
         if friendly:
             self._attr_name = friendly
         else:
             self._attr_name = f"Xenia {name_suffix.replace('_', ' ').title()}"
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info for Xenia Espresso machine."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._ip)},
+            name="Xenia Espresso",
+            manufacturer="Xenia",
+            model="Xenia DBL",
+        )
+
 
 class XeniaStatusSensor(XeniaBaseSensor):
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "status", "Xenia Status")
+    """Status (Off/On/Eco) of the machine."""
+
+    def __init__(self, coordinator, ip: str) -> None:
+        super().__init__(coordinator, "status", ip, "Xenia Status")
 
     @property
     def native_value(self) -> str | None:
@@ -73,10 +91,12 @@ class XeniaStatusSensor(XeniaBaseSensor):
 
 
 class XeniaTempSensor(XeniaBaseSensor):
+    """Temperature sensor (brew group / brew boiler)."""
+
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, coordinator, name_suffix: str, key: str) -> None:
-        super().__init__(coordinator, name_suffix)
+    def __init__(self, coordinator, name_suffix: str, key: str, ip: str) -> None:
+        super().__init__(coordinator, name_suffix, ip)
         self._key = key
 
     @property
@@ -92,10 +112,12 @@ class XeniaTempSensor(XeniaBaseSensor):
 
 
 class XeniaPressureSensor(XeniaBaseSensor):
+    """Pressure sensor (pump / steam boiler)."""
+
     _attr_native_unit_of_measurement = UnitOfPressure.BAR
 
-    def __init__(self, coordinator, name_suffix: str, key: str) -> None:
-        super().__init__(coordinator, name_suffix)
+    def __init__(self, coordinator, name_suffix: str, key: str, ip: str) -> None:
+        super().__init__(coordinator, name_suffix, ip)
         self._key = key
 
     @property
@@ -111,10 +133,12 @@ class XeniaPressureSensor(XeniaBaseSensor):
 
 
 class XeniaCurrentPowerSensor(XeniaBaseSensor):
+    """Current power consumption (A)."""
+
     _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
 
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "current_power", "Xenia Current Power")
+    def __init__(self, coordinator, ip: str) -> None:
+        super().__init__(coordinator, "current_power", ip, "Xenia Current Power")
 
     @property
     def native_value(self) -> float | None:
@@ -129,10 +153,12 @@ class XeniaCurrentPowerSensor(XeniaBaseSensor):
 
 
 class XeniaEnergySensor(XeniaBaseSensor):
+    """Total energy consumption (kWh)."""
+
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
 
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "total_energy", "Xenia Total Energy")
+    def __init__(self, coordinator, ip: str) -> None:
+        super().__init__(coordinator, "total_energy", ip, "Xenia Total Energy")
 
     @property
     def native_value(self) -> float | None:
@@ -147,8 +173,10 @@ class XeniaEnergySensor(XeniaBaseSensor):
 
 
 class XeniaExtractionsSensor(XeniaBaseSensor):
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "extractions", "Xenia Extractions")
+    """Number of extractions."""
+
+    def __init__(self, coordinator, ip: str) -> None:
+        super().__init__(coordinator, "extractions", ip, "Xenia Extractions")
 
     @property
     def native_value(self) -> int | None:
@@ -158,13 +186,15 @@ class XeniaExtractionsSensor(XeniaBaseSensor):
             return None
         try:
             return int(value)
-        except (TypeError, ValueError, ValueError):
+        except (TypeError, ValueError):
             return None
 
 
 class XeniaOperatingHoursSensor(XeniaBaseSensor):
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "operating_hours", "Xenia Operating Hours")
+    """Operating hours."""
+
+    def __init__(self, coordinator, ip: str) -> None:
+        super().__init__(coordinator, "operating_hours", ip, "Xenia Operating Hours")
 
     @property
     def native_value(self) -> int | None:
@@ -179,10 +209,12 @@ class XeniaOperatingHoursSensor(XeniaBaseSensor):
 
 
 class XeniaSetTempSensor(XeniaBaseSensor):
+    """Brew group set temperature."""
+
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "brewgroup_set_temp", "Xenia Brew Group Set Temp")
+    def __init__(self, coordinator, ip: str) -> None:
+        super().__init__(coordinator, "brewgroup_set_temp", ip, "Xenia Brew Group Set Temp")
 
     @property
     def native_value(self) -> float | None:
