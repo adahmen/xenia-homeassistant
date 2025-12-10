@@ -36,6 +36,7 @@ class XeniaPowerSwitch(CoordinatorEntity, SwitchEntity):
 
     _attr_has_entity_name = True
     _attr_name = "Xenia Power"
+    _attr_icon = "mdi:coffee-maker"
 
     def __init__(self, coordinator: XeniaOverviewCoordinator, session: ClientSession, ip: str) -> None:
         super().__init__(coordinator)

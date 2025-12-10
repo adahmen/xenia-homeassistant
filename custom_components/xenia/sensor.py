@@ -31,10 +31,10 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = [
         XeniaStatusSensor(overview, ip),
-        XeniaTempSensor(overview, "brew_group_temp", "BG_SENS_TEMP_A", ip),
-        XeniaTempSensor(overview, "brew_boiler_temp", "BB_SENS_TEMP_A", ip),
+        XeniaTempSensor(overview, "brew_group_temp", "BG_SENS_TEMP_A", ip, icon="mdi:coffee-maker"),
+        XeniaTempSensor(overview, "brew_boiler_temp", "BB_SENS_TEMP_A", ip, icon="mdi:thermometer"),
         XeniaPressureSensor(overview, "pump_pressure", "PU_SENS_PRESS", ip),
-        XeniaPressureSensor(overview, "steam_boiler_pressure", "SB_SENS_PRESS", ip),
+        XeniaPressureSensor(overview, "steam_boiler_pressure", "SB_SENS_PRESS", ip, icon="mdi:gauge"),
         XeniaCurrentPowerSensor(overview, ip),
         XeniaEnergySensor(overview, ip),
         XeniaExtractionsSensor(overview, ip),
@@ -50,7 +50,14 @@ class XeniaBaseSensor(CoordinatorEntity, SensorEntity):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, name_suffix: str, ip: str, friendly: str | None = None) -> None:
+    def __init__(
+        self,
+        coordinator,
+        name_suffix: str,
+        ip: str,
+        friendly: str | None = None,
+        icon: str | None = None,
+    ) -> None:
         super().__init__(coordinator)
         self._name_suffix = name_suffix
         self._ip = ip
@@ -59,6 +66,8 @@ class XeniaBaseSensor(CoordinatorEntity, SensorEntity):
             self._attr_name = friendly
         else:
             self._attr_name = f"Xenia {name_suffix.replace('_', ' ').title()}"
+        if icon:
+            self._attr_icon = icon
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -75,7 +84,13 @@ class XeniaStatusSensor(XeniaBaseSensor):
     """Status (Off/On/Eco) of the machine."""
 
     def __init__(self, coordinator, ip: str) -> None:
-        super().__init__(coordinator, "status", ip, "Xenia Status")
+        super().__init__(
+            coordinator,
+            "status",
+            ip,
+            friendly="Xenia Status",
+            icon="mdi:coffee-maker",
+        )
 
     @property
     def native_value(self) -> str | None:
@@ -95,8 +110,15 @@ class XeniaTempSensor(XeniaBaseSensor):
 
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, coordinator, name_suffix: str, key: str, ip: str) -> None:
-        super().__init__(coordinator, name_suffix, ip)
+    def __init__(
+        self,
+        coordinator,
+        name_suffix: str,
+        key: str,
+        ip: str,
+        icon: str | None = None,
+    ) -> None:
+        super().__init__(coordinator, name_suffix, ip, icon=icon)
         self._key = key
 
     @property
@@ -116,8 +138,15 @@ class XeniaPressureSensor(XeniaBaseSensor):
 
     _attr_native_unit_of_measurement = UnitOfPressure.BAR
 
-    def __init__(self, coordinator, name_suffix: str, key: str, ip: str) -> None:
-        super().__init__(coordinator, name_suffix, ip)
+    def __init__(
+        self,
+        coordinator,
+        name_suffix: str,
+        key: str,
+        ip: str,
+        icon: str | None = None,
+    ) -> None:
+        super().__init__(coordinator, name_suffix, ip, icon=icon or "mdi:gauge-low")
         self._key = key
 
     @property
@@ -138,7 +167,13 @@ class XeniaCurrentPowerSensor(XeniaBaseSensor):
     _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
 
     def __init__(self, coordinator, ip: str) -> None:
-        super().__init__(coordinator, "current_power", ip, "Xenia Current Power")
+        super().__init__(
+            coordinator,
+            "current_power",
+            ip,
+            friendly="Xenia Current Power",
+            icon="mdi:flash-outline",
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -158,7 +193,13 @@ class XeniaEnergySensor(XeniaBaseSensor):
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
 
     def __init__(self, coordinator, ip: str) -> None:
-        super().__init__(coordinator, "total_energy", ip, "Xenia Total Energy")
+        super().__init__(
+            coordinator,
+            "total_energy",
+            ip,
+            friendly="Xenia Total Energy",
+            icon="mdi:counter",
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -176,7 +217,13 @@ class XeniaExtractionsSensor(XeniaBaseSensor):
     """Number of extractions."""
 
     def __init__(self, coordinator, ip: str) -> None:
-        super().__init__(coordinator, "extractions", ip, "Xenia Extractions")
+        super().__init__(
+            coordinator,
+            "extractions",
+            ip,
+            friendly="Xenia Extractions",
+            icon="mdi:counter",
+        )
 
     @property
     def native_value(self) -> int | None:
@@ -194,7 +241,13 @@ class XeniaOperatingHoursSensor(XeniaBaseSensor):
     """Operating hours."""
 
     def __init__(self, coordinator, ip: str) -> None:
-        super().__init__(coordinator, "operating_hours", ip, "Xenia Operating Hours")
+        super().__init__(
+            coordinator,
+            "operating_hours",
+            ip,
+            friendly="Xenia Operating Hours",
+            icon="mdi:clock-outline",
+        )
 
     @property
     def native_value(self) -> int | None:
@@ -214,7 +267,13 @@ class XeniaSetTempSensor(XeniaBaseSensor):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
     def __init__(self, coordinator, ip: str) -> None:
-        super().__init__(coordinator, "brewgroup_set_temp", ip, "Xenia Brew Group Set Temp")
+        super().__init__(
+            coordinator,
+            "brewgroup_set_temp",
+            ip,
+            friendly="Xenia Brew Group Set Temp",
+            icon="mdi:thermometer-check",
+        )
 
     @property
     def native_value(self) -> float | None:
